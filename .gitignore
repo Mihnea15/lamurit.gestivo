@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# agent skills: symlinks with absolute paths, recreate with `npx skills experimental_install`
+/.claude/skills/
