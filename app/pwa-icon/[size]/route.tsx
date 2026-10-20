@@ -7,7 +7,7 @@ export function generateStaticParams() {
   return SIZES.map((size) => ({ size }));
 }
 
-/** Renders the PWA icon (an "L." stamp on navy) as a PNG of the requested size. */
+/** Renders the PWA icon (an "L." mark in Gestivo brass on dark) as a PNG of the requested size. */
 export async function GET(_req: Request, ctx: RouteContext<"/pwa-icon/[size]">) {
   const { size } = await ctx.params;
   const px = SIZES.includes(size) ? Number(size) : 192;
@@ -20,13 +20,13 @@ export async function GET(_req: Request, ctx: RouteContext<"/pwa-icon/[size]">) 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#1d2a44",
-          color: "#f7f3ea",
+          background: "#1a1613",
+          color: "#f2ede6",
           fontSize: px * 0.55,
           fontWeight: 700,
         }}
       >
-        L<span style={{ color: "#c8452c" }}>.</span>
+        L<span style={{ color: "#c89a4e" }}>.</span>
       </div>
     ),
     { width: px, height: px }

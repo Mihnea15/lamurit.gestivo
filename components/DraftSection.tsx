@@ -47,7 +47,7 @@ export default function DraftSection({ id, hint, draft }: Props) {
 
   if (!draft) {
     return (
-      <section className="no-print mt-4 rounded-2xl border-2 border-dashed border-ink/30 bg-white p-6">
+      <section className="no-print mt-4 rounded-2xl border-2 border-dashed border-ink/30 bg-raised p-6">
         <h2 className="font-display text-xl font-bold">✍️ Vrei să contești sau să răspunzi?</h2>
         {hint && <p className="mt-2 text-ink/80">{hint}</p>}
         <p className="mt-2 text-sm text-ink/70">
@@ -60,14 +60,14 @@ export default function DraftSection({ id, hint, draft }: Props) {
         >
           {busy ? "Redactez… (~30 sec)" : "Redactează-mi răspunsul (2 credite)"}
         </button>
-        {error && <p className="mt-3 text-sm font-medium text-stamp">{error}</p>}
+        {error && <p className="mt-3 text-sm font-medium text-alert">{error}</p>}
       </section>
     );
   }
 
   const text = showRo ? draft.bodyRo : draft.body;
   return (
-    <section className="mt-4 rounded-2xl bg-white p-6">
+    <section className="mt-4 rounded-2xl bg-raised p-6">
       <h2 className="font-display text-xl font-bold">✍️ {draft.title}</h2>
       <div className="no-print mt-3 flex flex-wrap gap-2 text-sm">
         <button onClick={() => setShowRo(false)} className={`rounded-full px-3 py-1 ${!showRo ? "bg-ink text-paper" : "bg-paper"}`}>
@@ -76,7 +76,7 @@ export default function DraftSection({ id, hint, draft }: Props) {
         <button onClick={() => setShowRo(true)} className={`rounded-full px-3 py-1 ${showRo ? "bg-ink text-paper" : "bg-paper"}`}>
           Traducere în română
         </button>
-        <button onClick={() => copy(draft.body)} className="ml-auto rounded-full bg-stamp px-3 py-1 font-semibold text-white">
+        <button onClick={() => copy(draft.body)} className="ml-auto rounded-full bg-brass-fill px-3 py-1 font-semibold text-on-brass">
           {copied ? "Copiat ✓" : "Copiază textul"}
         </button>
       </div>

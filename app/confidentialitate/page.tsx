@@ -10,7 +10,11 @@ export default function Privacy() {
       </p>
       <h2 className="font-display text-xl font-bold">Ce facem cu documentul tău</h2>
       <ul className="list-disc space-y-1 pl-5">
-        <li>Documentul (poza sau PDF-ul) este procesat doar în memorie și <strong>nu este salvat</strong>.</li>
+        <li>
+          Documentul (poza sau PDF-ul) este procesat doar în memorie și <strong>nu este salvat pe serverele
+          noastre</strong>. O copie rămâne doar în browserul tău (pe dispozitivul tău) maximum 24 de ore, ca să
+          nu fie nevoie să-l încarci din nou după plată.
+        </li>
         <li>
           Păstrăm doar rezultatul explicației, cu CNP-ul, IBAN-ul și numele tău mascate, timp de maximum
           <strong> 24 de ore</strong>, apoi este șters automat.

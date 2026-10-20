@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-// Structured result the model must return for every analyzed document.
-export const analysisSchema = z.object({
+// Cheap first pass (free): what the document is and how urgent, nothing actionable.
+export const previewSchema = z.object({
   isOfficialDocument: z
     .boolean()
     .describe("false dacă imaginea nu e un document (selfie, peisaj etc.)"),
@@ -18,7 +18,25 @@ export const analysisSchema = z.object({
     .describe("Cât de urgent trebuie să acționeze persoana"),
   teaser: z
     .string()
-    .describe("O singură propoziție, fără detalii acționabile, care spune ce e documentul"),
+    .describe("O singură propoziție, fără termene, sume sau pași, care spune ce e documentul"),
+  hasDeadline: z.boolean().describe("Dacă documentul conține un termen"),
+  hasAmount: z.boolean().describe("Dacă documentul cere o sumă de bani"),
+  canContest: z.boolean().describe("Dacă documentul poate fi contestat sau i se poate răspunde"),
+  isBusiness: z
+    .boolean()
+    .describe(
+      "true dacă documentul privește o firmă, un PFA sau activitatea comercială a cuiva " +
+        "(facturi, e-Factura, TVA, obligații fiscale ale firmei, clienți care nu plătesc, contracte comerciale)"
+    ),
+});
+
+export type Preview = z.infer<typeof previewSchema>;
+
+// Full paid analysis.
+export const analysisSchema = z.object({
+  country: previewSchema.shape.country,
+  docType: previewSchema.shape.docType,
+  issuer: previewSchema.shape.issuer,
   summary: z.string().describe("Explicație pe înțeles, 3-6 propoziții, ca pentru un prieten"),
   amount: z
     .string()
@@ -61,25 +79,3 @@ export const draftSchema = z.object({
 });
 
 export type Draft = z.infer<typeof draftSchema>;
-
-// Fields shown for free, before payment.
-export type Preview = Pick<
-  Analysis,
-  "isOfficialDocument" | "country" | "language" | "docType" | "issuer" | "urgency" | "teaser" | "canContest"
-> & { hasDeadline: boolean; hasAmount: boolean };
-
-/** Reduces a full analysis to the free preview fields. */
-export function toPreview(a: Analysis): Preview {
-  return {
-    isOfficialDocument: a.isOfficialDocument,
-    country: a.country,
-    language: a.language,
-    docType: a.docType,
-    issuer: a.issuer,
-    urgency: a.urgency,
-    teaser: a.teaser,
-    canContest: a.canContest,
-    hasDeadline: a.deadline !== null,
-    hasAmount: a.amount !== null,
-  };
-}

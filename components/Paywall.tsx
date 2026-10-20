@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Preview } from "@/lib/schema";
 import type { PackId } from "@/lib/pricing";
+import { deleteLocalFiles, loadLocalFiles } from "@/lib/localFiles";
+import { preparePages } from "@/components/Uploader";
 
 type Props = {
   id: string;
@@ -16,27 +18,40 @@ type Props = {
 export default function Paywall({ id, credits, prices, p }: Props) {
   const router = useRouter();
   const search = useSearchParams();
+  const reuploadRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsReupload, setNeedsReupload] = useState(false);
   const [waiting, setWaiting] = useState(search.get("plata") === "ok");
 
-  /** Spends one credit and reloads the page to show the full report. */
-  const unlock = useCallback(async () => {
-    setBusy("unlock");
-    setError(null);
-    const res = await fetch("/api/unlock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    if (res.ok) {
-      router.replace(`/analiza/${id}`);
-      router.refresh();
-    } else {
-      setError("Nu am putut debloca raportul. Încearcă din nou.");
+  /** Sends the pages for the paid analysis; the server charges one credit only on success. */
+  const unlock = useCallback(
+    async (picked?: File[]) => {
+      setError(null);
+      const pages = picked ? await preparePages(picked) : await loadLocalFiles(id);
+      if (!pages?.length) {
+        setNeedsReupload(true);
+        setWaiting(false);
+        return;
+      }
+      setBusy("unlock");
+      const form = new FormData();
+      form.append("id", id);
+      for (const f of pages) form.append("files", f, f.name);
+      const res = await fetch("/api/unlock", { method: "POST", body: form });
+      if (res.ok) {
+        await deleteLocalFiles(id);
+        router.replace(`/analiza/${id}`);
+        router.refresh();
+        return;
+      }
+      const data = (await res.json()) as { error?: string };
+      setError(data.error === "no_credits" ? "Nu ai credite. Alege un pachet mai jos." : data.error ?? "Ceva n-a mers.");
       setBusy(null);
-    }
-  }, [id, router]);
+      setWaiting(false);
+    },
+    [id, router]
+  );
 
   // After returning from Stripe, wait for the webhook to credit the wallet, then unlock automatically.
   useEffect(() => {
@@ -76,7 +91,7 @@ export default function Paywall({ id, credits, prices, p }: Props) {
   }
 
   return (
-    <section className="mt-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+    <section className="mt-4 overflow-hidden rounded-2xl bg-raised shadow-sm">
       <div className="relative space-y-3 p-6 select-none" aria-hidden>
         {p.hasDeadline && <LockedRow label="⏰ Termen limită" />}
         {p.hasAmount && <LockedRow label="💶 Suma" />}
@@ -84,19 +99,42 @@ export default function Paywall({ id, credits, prices, p }: Props) {
         <LockedRow label="✅ Ce ai de făcut, pas cu pas" lines={3} />
         <LockedRow label="⚠️ Dacă nu faci nimic" />
         {p.canContest && <LockedRow label="✍️ Se poate contesta" />}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-raised" />
       </div>
 
       <div className="border-t border-ink/10 bg-paper/60 p-6">
-        {waiting ? (
-          <p className="text-center font-semibold">Confirmăm plata… ⏳</p>
+        <input
+          ref={reuploadRef}
+          type="file"
+          accept="image/*,application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files?.length && unlock(Array.from(e.target.files).slice(0, 5))}
+        />
+        {needsReupload && busy !== "unlock" ? (
+          <div className="text-center">
+            <p className="font-semibold">Mai trimite o dată documentul</p>
+            <p className="mt-1 text-sm text-ink/70">
+              Din motive de confidențialitate nu-l păstrăm pe server, iar pe acest dispozitiv nu l-am mai găsit.
+            </p>
+            <button
+              onClick={() => reuploadRef.current?.click()}
+              className="mt-3 w-full rounded-xl bg-brass-fill px-5 py-4 text-lg font-bold text-on-brass shadow hover:brightness-110"
+            >
+              📄 Alege din nou documentul
+            </button>
+          </div>
+        ) : waiting || busy === "unlock" ? (
+          <p className="text-center font-semibold">
+            {busy === "unlock" ? "Analizez documentul în detaliu… (~30 sec) ⏳" : "Confirmăm plata… ⏳"}
+          </p>
         ) : credits > 0 ? (
           <button
-            onClick={unlock}
+            onClick={() => unlock()}
             disabled={!!busy}
-            className="w-full rounded-xl bg-stamp px-5 py-4 text-lg font-bold text-white shadow hover:brightness-110 disabled:opacity-70"
+            className="w-full rounded-xl bg-brass-fill px-5 py-4 text-lg font-bold text-on-brass shadow hover:brightness-110 disabled:opacity-70"
           >
-            {busy === "unlock" ? "Deblochez…" : `Vezi explicația completă (1 credit, mai ai ${credits})`}
+            {`Vezi explicația completă (1 credit, mai ai ${credits})`}
           </button>
         ) : (
           <>
@@ -105,7 +143,7 @@ export default function Paywall({ id, credits, prices, p }: Props) {
               <button
                 onClick={() => buy("single")}
                 disabled={!!busy}
-                className="rounded-xl bg-stamp px-5 py-4 font-bold text-white shadow hover:brightness-110 disabled:opacity-70"
+                className="rounded-xl bg-brass-fill px-5 py-4 font-bold text-on-brass shadow hover:brightness-110 disabled:opacity-70"
               >
                 {busy === "single" ? "Se deschide plata…" : `Doar acest document · ${prices.single}`}
               </button>
@@ -120,7 +158,7 @@ export default function Paywall({ id, credits, prices, p }: Props) {
             <p className="mt-3 text-center text-xs text-ink/60">Plată securizată prin Stripe · card, Apple Pay, Google Pay</p>
           </>
         )}
-        {error && <p className="mt-3 text-center text-sm font-medium text-stamp">{error}</p>}
+        {error && <p className="mt-3 text-center text-sm font-medium text-alert">{error}</p>}
       </div>
     </section>
   );

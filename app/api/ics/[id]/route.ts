@@ -9,11 +9,11 @@ function esc(s: string): string {
 export async function GET(_req: Request, ctx: RouteContext<"/api/ics/[id]">) {
   const { id } = await ctx.params;
   const record = await getAnalysis(id);
-  const date = record?.unlocked ? record.analysis.deadline?.date : null;
+  const date = record?.analysis?.deadline?.date;
   if (!record || !date) return new Response("Not found", { status: 404 });
 
   const day = date.replace(/-/g, "");
-  const a = record.analysis;
+  const a = record.analysis!;
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

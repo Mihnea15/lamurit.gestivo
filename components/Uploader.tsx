@@ -2,9 +2,21 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { saveLocalFiles } from "@/lib/localFiles";
 
 const MAX_FILES = 5;
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
+
+/** Converts picked files into upload-ready pages (photos compressed to JPEG, PDFs untouched). */
+export async function preparePages(files: File[]): Promise<File[]> {
+  return Promise.all(
+    files.map(async (f) =>
+      f.type.startsWith("image/")
+        ? new File([await compressImage(f)], f.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" })
+        : f
+    )
+  );
+}
 
 /** Downscales a photo to max 2000px and re-encodes it as JPEG so uploads stay under the 4.5 MB request limit. */
 async function compressImage(file: File): Promise<Blob> {
@@ -48,17 +60,14 @@ export default function Uploader() {
     setBusy(true);
     setError(null);
     try {
+      const pages = await preparePages(files);
       const form = new FormData();
-      for (const f of files) {
-        if (f.type.startsWith("image/")) {
-          form.append("files", await compressImage(f), f.name.replace(/\.\w+$/, "") + ".jpg");
-        } else {
-          form.append("files", f, f.name);
-        }
-      }
+      for (const p of pages) form.append("files", p, p.name);
       const res = await fetch("/api/analyze", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Ceva n-a mers. Încearcă din nou.");
+      // Kept on this device only, re-sent if the user pays for the full analysis.
+      await saveLocalFiles(data.id, pages);
       router.push(`/analiza/${data.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ceva n-a mers. Încearcă din nou.");
@@ -67,7 +76,7 @@ export default function Uploader() {
   }
 
   return (
-    <div className="rounded-2xl border-2 border-dashed border-ink/25 bg-white/70 p-5 shadow-sm sm:p-7">
+    <div className="rounded-2xl border-2 border-dashed border-ink/25 bg-raised p-5 shadow-sm sm:p-7">
       <input
         ref={cameraRef}
         type="file"
@@ -118,7 +127,7 @@ export default function Uploader() {
                 type="button"
                 onClick={() => setFiles(files.filter((_, j) => j !== i))}
                 disabled={busy}
-                className="ml-3 text-ink/60 hover:text-stamp"
+                className="ml-3 text-ink/60 hover:text-alert"
                 aria-label="Șterge"
               >
                 ✕
@@ -133,16 +142,16 @@ export default function Uploader() {
           type="button"
           onClick={submit}
           disabled={busy}
-          className="mt-4 w-full rounded-xl bg-stamp px-5 py-4 text-lg font-bold text-white shadow transition hover:brightness-110 disabled:opacity-70"
+          className="mt-4 w-full rounded-xl bg-brass-fill px-5 py-4 text-lg font-bold text-on-brass shadow transition hover:brightness-110 disabled:opacity-70"
         >
           {busy ? "Citesc documentul… (~20 sec)" : `Lămurește-mă (${files.length} pagin${files.length === 1 ? "ă" : "i"})`}
         </button>
       )}
 
-      {error && <p className="mt-3 text-sm font-medium text-stamp">{error}</p>}
+      {error && <p className="mt-3 text-sm font-medium text-alert">{error}</p>}
 
       <p className="mt-4 text-center text-xs text-ink/60">
-        🔒 Documentul nu e salvat. Îl citim, îți explicăm și îl ștergem imediat.
+        🔒 Documentul nu e salvat pe serverele noastre. Rămâne doar pe telefonul tău, 24 de ore.
       </p>
     </div>
   );

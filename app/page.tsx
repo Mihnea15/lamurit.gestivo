@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <>
       <section className="pt-6 sm:pt-12">
-        <p className="mb-3 inline-block -rotate-1 rounded border-2 border-stamp px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-stamp">
+        <p className="mb-3 inline-block -rotate-1 rounded border-2 border-brass px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-brass">
           Răspuns în 20 de secunde
         </p>
         <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
@@ -39,8 +39,8 @@ export default function Home() {
         <h2 className="font-display text-2xl font-bold">Cum funcționează</h2>
         <ol className="mt-5 grid gap-4 sm:grid-cols-3">
           {STEPS.map(([n, title, text]) => (
-            <li key={n} className="rounded-xl bg-white/70 p-4">
-              <span className="font-display text-3xl font-bold text-stamp">{n}</span>
+            <li key={n} className="rounded-xl bg-raised p-4">
+              <span className="font-display text-3xl font-bold text-brass">{n}</span>
               <h3 className="mt-1 font-semibold">{title}</h3>
               <p className="mt-1 text-sm text-ink/70">{text}</p>
             </li>
@@ -52,7 +52,7 @@ export default function Home() {
         <h2 className="font-display text-2xl font-bold">Ce putem lămuri</h2>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {EXAMPLES.map((e) => (
-            <div key={e.title} className="flex gap-3 rounded-xl border border-ink/10 bg-white/60 p-4">
+            <div key={e.title} className="flex gap-3 rounded-xl border border-ink/10 bg-raised p-4">
               <span className="text-2xl" aria-hidden>
                 {e.icon}
               </span>

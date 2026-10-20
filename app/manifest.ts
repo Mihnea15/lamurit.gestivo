@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Fă o poză la orice document oficial și află pe românește ce înseamnă și ce ai de făcut.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f7f3ea",
-    theme_color: "#1d2a44",
+    background_color: "#edeae3",
+    theme_color: "#1a1613",
     lang: "ro",
     icons: [
       { src: "/pwa-icon/192", sizes: "192x192", type: "image/png" },

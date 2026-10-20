@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { Analysis, Draft } from "./schema";
+import type { Analysis, Draft, Preview } from "./schema";
 
 export const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
@@ -10,19 +10,19 @@ export const redis = new Redis({
 const RESULT_TTL = 60 * 60 * 24;
 
 export type StoredAnalysis = {
-  analysis: Analysis;
+  preview: Preview;
+  analysis: Analysis | null; // null until paid
   wallet: string;
-  unlocked: boolean;
   draft: Draft | null;
   createdAt: string;
 };
 
-/** Saves a fresh analysis owned by the given wallet and returns nothing. */
-export async function saveAnalysis(id: string, wallet: string, analysis: Analysis) {
+/** Saves a fresh free preview owned by the given wallet. */
+export async function savePreview(id: string, wallet: string, preview: Preview) {
   const record: StoredAnalysis = {
-    analysis,
+    preview,
+    analysis: null,
     wallet,
-    unlocked: false,
     draft: null,
     createdAt: new Date().toISOString(),
   };
@@ -37,6 +37,17 @@ export async function getAnalysis(id: string): Promise<StoredAnalysis | null> {
 /** Overwrites an analysis while keeping its remaining TTL. */
 export async function updateAnalysis(id: string, record: StoredAnalysis) {
   await redis.set(`analysis:${id}`, record, { keepTtl: true });
+}
+
+/** Takes a short per-analysis lock so a double click cannot run (and charge) twice. */
+export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T | "locked"> {
+  const lockKey = `lock:${name}`;
+  if ((await redis.set(lockKey, 1, { nx: true, ex: 180 })) !== "OK") return "locked";
+  try {
+    return await fn();
+  } finally {
+    await redis.del(lockKey);
+  }
 }
 
 /** Returns the wallet's current credit balance. */
